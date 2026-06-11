@@ -1,5 +1,6 @@
 package com.lookatlion.purchasecurrencyapi.purchase;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
@@ -98,7 +99,19 @@ class PurchaseConversionControllerTest {
 
         mockMvc.perform(get("/api/purchases/{id}/conversion", id)
                         .param("currency", "Canada-Dollar"))
-                .andExpect(status().isUnprocessableEntity());
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.status").value(422))
+                .andExpect(jsonPath("$.message", containsString("cannot be converted")));
+    }
+
+    @Test
+    void returnsBadRequestWhenCurrencyParameterMissing() throws Exception {
+        String id = createPurchase("100.00");
+
+        mockMvc.perform(get("/api/purchases/{id}/conversion", id))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message", containsString("currency")));
     }
 
     @Test

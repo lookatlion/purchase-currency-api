@@ -2,6 +2,7 @@ package com.lookatlion.purchasecurrencyapi.purchase;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -77,8 +78,14 @@ class PurchaseControllerTest {
 
     @Test
     void returnsNotFoundForUnknownId() throws Exception {
-        mockMvc.perform(get("/api/purchases/{id}", UUID.randomUUID()))
-                .andExpect(status().isNotFound());
+        UUID unknownId = UUID.randomUUID();
+
+        mockMvc.perform(get("/api/purchases/{id}", unknownId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.error").value("Not Found"))
+                .andExpect(jsonPath("$.path").value("/api/purchases/" + unknownId))
+                .andExpect(jsonPath("$.message", containsString("not found")));
     }
 
     @Test
@@ -94,7 +101,9 @@ class PurchaseControllerTest {
         mockMvc.perform(post("/api/purchases")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(body))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message", containsString("description")));
     }
 
     @Test
