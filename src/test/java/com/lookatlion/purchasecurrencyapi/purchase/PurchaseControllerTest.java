@@ -1,8 +1,14 @@
 package com.lookatlion.purchasecurrencyapi.purchase;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import java.util.UUID;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +23,9 @@ class PurchaseControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Test
     void createsPurchaseAndReturnsItWithId() throws Exception {
@@ -36,6 +45,40 @@ class PurchaseControllerTest {
                 .andExpect(jsonPath("$.description").value("Coffee beans"))
                 .andExpect(jsonPath("$.transactionDate").value("2026-01-15"))
                 .andExpect(jsonPath("$.amountUsd").value(12.34));
+    }
+
+    @Test
+    void retrievesStoredPurchaseById() throws Exception {
+        String body = """
+                {
+                  "description": "Coffee beans",
+                  "transactionDate": "2026-01-15",
+                  "amountUsd": 12.34
+                }
+                """;
+
+        String created = mockMvc.perform(post("/api/purchases")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(body))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        JsonNode id = objectMapper.readTree(created).get("id");
+
+        mockMvc.perform(get("/api/purchases/{id}", id.asText()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id.asText()))
+                .andExpect(jsonPath("$.description").value("Coffee beans"))
+                .andExpect(jsonPath("$.transactionDate").value("2026-01-15"))
+                .andExpect(jsonPath("$.amountUsd").value(12.34));
+    }
+
+    @Test
+    void returnsNotFoundForUnknownId() throws Exception {
+        mockMvc.perform(get("/api/purchases/{id}", UUID.randomUUID()))
+                .andExpect(status().isNotFound());
     }
 
     @Test
